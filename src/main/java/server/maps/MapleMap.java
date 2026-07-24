@@ -3530,11 +3530,18 @@ public class MapleMap {
         System.out.println("----------------------------------");
         */
 
-        if (YamlConfig.config.server.USE_ENABLE_FULL_RESPAWN) {
-            return (monsterSpawn.size() - spawnedMonstersOnMap.get());
+        int spawnMultiplier = YamlConfig.config.server.SPAWN_MULTIPLIER;
+        if (spawnMultiplier < 1) {
+            spawnMultiplier = 1;
         }
 
-        int maxNumShouldSpawn = (int) Math.ceil(getCurrentSpawnRate(numPlayers) * monsterSpawn.size());
+        if (YamlConfig.config.server.USE_ENABLE_FULL_RESPAWN) {
+            int targetPopulation = (int) Math.ceil(monsterSpawn.size() * spawnMultiplier);
+            return Math.max(0, Math.min(targetPopulation, monsterSpawn.size()) - spawnedMonstersOnMap.get());
+        }
+
+        int maxNumShouldSpawn = (int) Math.ceil(getCurrentSpawnRate(numPlayers) * monsterSpawn.size() * spawnMultiplier);
+        maxNumShouldSpawn = Math.min(maxNumShouldSpawn, monsterSpawn.size());
         return maxNumShouldSpawn - spawnedMonstersOnMap.get();
     }
 

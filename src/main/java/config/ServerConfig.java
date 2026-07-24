@@ -299,4 +299,8 @@ public class ServerConfig {
 
     //Custom NPC overrides. List of NPC IDs.
     public Map<String, String> NPCS_SCRIPTABLE = new HashMap<>();
+
+    //Mob Spawn Configuration
+    public int SPAWN_MULTIPLIER;
+    public double MOB_RESPAWN_TIME_RATE;
 }

@@ -22,6 +22,7 @@
 package server.life;
 
 import client.Character;
+import config.YamlConfig;
 import net.server.Server;
 
 import java.awt.*;
@@ -87,11 +88,16 @@ public class SpawnPoint {
         mob.addListener(new MonsterListener() {
             @Override
             public void monsterKilled(int aniTime) {
+                double respawnTimeRate = YamlConfig.config.server.MOB_RESPAWN_TIME_RATE;
+                if (respawnTimeRate <= 0) {
+                    respawnTimeRate = 1.0;
+                }
+
                 nextPossibleSpawn = Server.getInstance().getCurrentTime();
                 if (mobTime > 0) {
-                    nextPossibleSpawn += SECONDS.toMillis(mobTime);
+                    nextPossibleSpawn += (long) (SECONDS.toMillis(mobTime) / respawnTimeRate);
                 } else {
-                    nextPossibleSpawn += aniTime;
+                    nextPossibleSpawn += (long) (aniTime / respawnTimeRate);
                 }
                 spawnedMonsters.decrementAndGet();
             }
@@ -103,7 +109,11 @@ public class SpawnPoint {
             public void monsterHealed(int trueHeal) {}
         });
         if (mobTime == 0) {
-            nextPossibleSpawn = Server.getInstance().getCurrentTime() + mobInterval;
+            double respawnTimeRate = YamlConfig.config.server.MOB_RESPAWN_TIME_RATE;
+            if (respawnTimeRate <= 0) {
+                respawnTimeRate = 1.0;
+            }
+            nextPossibleSpawn = Server.getInstance().getCurrentTime() + (long) (mobInterval / respawnTimeRate);
         }
         return mob;
     }
