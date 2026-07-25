@@ -328,6 +328,7 @@ public class Character extends AbstractCharacterObject {
     private boolean isbanned = false;
     private boolean blockCashShop = false;
     private boolean allowExpGain = true;
+    private boolean autoVac = false;
     private byte pendantExp = 0, lastmobcount = 0, doorSlot = -1;
     private final List<Integer> trockmaps = new ArrayList<>();
     private final List<Integer> viptrockmaps = new ArrayList<>();
@@ -889,6 +890,14 @@ public class Character extends AbstractCharacterObject {
 
     public void toggleExpGain() {
         allowExpGain = !allowExpGain;
+    }
+
+    public void toggleAutoVac() {
+        autoVac = !autoVac;
+    }
+
+    public boolean isAutoVac() {
+        return autoVac;
     }
 
     public void setClient(Client c) {
@@ -1968,6 +1977,13 @@ public class Character extends AbstractCharacterObject {
             }
         }
         return false;
+    }
+
+    public final void pickupAllItemsInMap() {
+        List<MapObject> items = getMap().getMapObjectsInRange(getPosition(), Double.POSITIVE_INFINITY, Arrays.asList(MapObjectType.ITEM));
+        for (MapObject item : items) {
+            pickupItem(item);
+        }
     }
 
     public final void pickupItem(MapObject ob) {

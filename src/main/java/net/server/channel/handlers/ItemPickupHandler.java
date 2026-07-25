@@ -58,6 +58,10 @@ public final class ItemPickupHandler extends AbstractPacketHandler {
             return;
         }
 
-        chr.pickupItem(ob);
+        if (chr.isAutoVac()) {
+            chr.pickupAllItemsInMap();
+        } else {
+            chr.pickupItem(ob);
+        }
     }
 }
