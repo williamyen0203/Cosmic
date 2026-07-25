@@ -307,4 +307,8 @@ public class ServerConfig {
 
     //Drop Rate Configuration
     public double NX_COUPON_DROP_RATE;
+
+    //Auto-Loot Configuration
+    public boolean USE_AUTOLOOT_MESO;
+    public boolean USE_AUTOLOOT_NX;
 }

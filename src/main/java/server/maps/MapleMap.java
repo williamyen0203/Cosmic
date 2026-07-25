@@ -691,8 +691,9 @@ public class MapleMap {
                             mesos = Integer.MAX_VALUE;
                         }
 
-                        spawnMesoDrop(mesos, calcDropPos(pos, mob.getPosition()), mob, chr, false, droptype,
-                                delay);
+                        MapItem mesoDrop = spawnMesoDrop(mesos, calcDropPos(pos, mob.getPosition()), mob, chr, false,
+                                droptype, delay);
+                        scheduleAutoloot(mesoDrop, chr);
                     }
                 } else {
                     if (ItemConstants.getInventoryType(de.itemId) == InventoryType.EQUIP) {
@@ -700,7 +701,7 @@ public class MapleMap {
                     } else {
                         idrop = new Item(de.itemId, (short) 0, (short) (de.Maximum != 1 ? Randomizer.nextInt(de.Maximum - de.Minimum) + de.Minimum : 1));
                     }
-                    spawnDrop(idrop, calcDropPos(pos, mob.getPosition()), mob, chr, droptype, de.questid, delay);
+                    scheduleAutoloot(spawnDrop(idrop, calcDropPos(pos, mob.getPosition()), mob, chr, droptype, de.questid, delay), chr);
                 }
                 index++;
             }
@@ -732,7 +733,7 @@ public class MapleMap {
                     } else {
                         idrop = new Item(de.itemId, (short) 0, (short) (de.Maximum != 1 ? Randomizer.nextInt(de.Maximum - de.Minimum) + de.Minimum : 1));
                     }
-                    spawnDrop(idrop, calcDropPos(pos, mob.getPosition()), mob, chr, droptype, de.questid, delay);
+                    scheduleAutoloot(spawnDrop(idrop, calcDropPos(pos, mob.getPosition()), mob, chr, droptype, de.questid, delay), chr);
                     d++;
                 }
             }
@@ -1071,8 +1072,8 @@ public class MapleMap {
         }
     }
 
-    private void spawnDrop(final Item idrop, final Point dropPos, final MapObject dropper, final Character chr,
-                           final byte droptype, final short questid, short delay) {
+    private MapItem spawnDrop(final Item idrop, final Point dropPos, final MapObject dropper, final Character chr,
+                              final byte droptype, final short questid, short delay) {
         final MapItem mdrop = new MapItem(idrop, dropPos, dropper, chr, chr.getClient(), droptype, false, questid);
         mdrop.setDropTime(Server.getInstance().getCurrentTime());
         spawnAndAddRangedMapObject(mdrop, c -> {
@@ -1091,10 +1092,11 @@ public class MapleMap {
 
         instantiateItemDrop(mdrop);
         activateItemReactors(mdrop, chr.getClient());
+        return mdrop;
     }
 
-    public final void spawnMesoDrop(final int meso, final Point position, final MapObject dropper,
-                                    final Character owner, final boolean playerDrop, final byte droptype, short delay) {
+    public final MapItem spawnMesoDrop(final int meso, final Point position, final MapObject dropper,
+                                       final Character owner, final boolean playerDrop, final byte droptype, short delay) {
         final Point droppos = calcDropPos(position, position);
         final MapItem mdrop = new MapItem(meso, droppos, dropper, owner, owner.getClient(), droptype, playerDrop);
         mdrop.setDropTime(Server.getInstance().getCurrentTime());
@@ -1110,6 +1112,32 @@ public class MapleMap {
         }, null);
 
         instantiateItemDrop(mdrop);
+        return mdrop;
+    }
+
+    /**
+     * When the matching auto-loot flag is enabled, schedules the given mob drop to be automatically
+     * picked up for its owner shortly after it lands. The drop still visibly appears; the delay clears
+     * the 400ms pickup lock (see {@link Character#pickupItem}) so the loot is seen before it vacuums.
+     * Crediting (meso party-split, NX cash, ownership, dedup) is delegated to the normal pickup path.
+     */
+    private void scheduleAutoloot(final MapItem drop, final Character owner) {
+        if (drop == null || owner == null) {
+            return;
+        }
+
+        boolean autoloot = (drop.getMeso() > 0 && YamlConfig.config.server.USE_AUTOLOOT_MESO)
+                || (ItemId.isNxCard(drop.getItemId()) && YamlConfig.config.server.USE_AUTOLOOT_NX);
+        if (!autoloot) {
+            return;
+        }
+
+        TimerManager.getInstance().schedule(() -> {
+            if (drop.isPickedUp() || !owner.isLoggedinWorld() || owner.getMap() != this) {
+                return;
+            }
+            owner.pickupItem(drop);
+        }, 600);
     }
 
     public final void disappearingItemDrop(final MapObject dropper, final Character owner, final Item item, final Point pos) {
