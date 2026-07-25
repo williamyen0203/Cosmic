@@ -152,32 +152,6 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
     // TODO: add position
     public record AttackTarget(short delay, List<Integer> damageLines) {}
 
-    // Casting Three Snails toggles the Stance (no-knockback) buff on/off, mirroring the @stance command.
-    // Three Snails is an attack skill (has hit/ball), so it arrives via CLOSE_RANGE/RANGED attack rather
-    // than SPECIAL_MOVE; both handlers call this right after parsing, so the toggle fires once on every
-    // cast regardless of which opcode the client used or whether a monster was actually hit.
-    protected void toggleStanceOnThreeSnails(Character chr, int skillId) {
-        if (skillId != chr.getJobType() * 10000000 + 1000) {   // job-specific Three Snails id (beginner = 1000)
-            return;
-        }
-
-        if (chr.getClient().tryacquireClient()) {
-            try {
-                if (chr.getBuffSource(BuffStat.STANCE) != -1) {
-                    // Any active Stance (Hero/Paladin/DarkKnight or a prior toggle) counts as "on".
-                    chr.cancelEffectFromBuffStat(BuffStat.STANCE);
-                    chr.message("Stance disabled.");
-                } else {
-                    Skill stance = SkillFactory.getSkill(Hero.STANCE);
-                    stance.getEffect(stance.getMaxLevel()).applyTo(chr);
-                    chr.message("Stance enabled.");
-                }
-            } finally {
-                chr.getClient().releaseClient();
-            }
-        }
-    }
-
     protected void applyAttack(AttackInfo attack, final Character player, int attackCount) {
         final MapleMap map = player.getMap();
         if (map.isOwnershipRestricted(player)) {

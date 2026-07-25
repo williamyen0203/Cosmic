@@ -21,6 +21,7 @@
 */
 package net.server.channel.handlers;
 
+import client.BuffStat;
 import client.Character;
 import client.Client;
 import client.Skill;
@@ -79,6 +80,17 @@ public final class SpecialMoveHandler extends AbstractPacketHandler {
                 try {
                     chr.toggleAutoTaunt();
                     chr.message("Auto-taunt " + (chr.isAutoTaunt() ? "enabled" : "disabled") + ".");
+
+                    // Same key also toggles the Stance (no-knockback) buff on/off, mirroring @stance.
+                    if (chr.getBuffSource(BuffStat.STANCE) != -1) {
+                        // Any active Stance (Hero/Paladin/DarkKnight or a prior toggle) counts as "on".
+                        chr.cancelEffectFromBuffStat(BuffStat.STANCE);
+                        chr.message("Stance disabled.");
+                    } else {
+                        Skill stance = SkillFactory.getSkill(Hero.STANCE);
+                        stance.getEffect(stance.getMaxLevel()).applyTo(chr);
+                        chr.message("Stance enabled.");
+                    }
                 } finally {
                     c.releaseClient();
                 }
