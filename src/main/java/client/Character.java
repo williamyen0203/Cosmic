@@ -310,6 +310,7 @@ public class Character extends AbstractCharacterObject {
     private ScheduledFuture<?> chairRecoveryTask = null;
     private ScheduledFuture<?> pendantOfSpirit = null; //1122017
     private ScheduledFuture<?> cpqSchedule = null;
+    private ScheduledFuture<?> tauntTask = null;
     private final Lock chrLock = new ReentrantLock(true);
     private final Lock evtLock = new ReentrantLock(true);
     private final Lock petLock = new ReentrantLock(true);
@@ -329,6 +330,7 @@ public class Character extends AbstractCharacterObject {
     private boolean blockCashShop = false;
     private boolean allowExpGain = true;
     private boolean autoVac = false;
+    private boolean autoTaunt = false;
     private byte pendantExp = 0, lastmobcount = 0, doorSlot = -1;
     private final List<Integer> trockmaps = new ArrayList<>();
     private final List<Integer> viptrockmaps = new ArrayList<>();
@@ -898,6 +900,78 @@ public class Character extends AbstractCharacterObject {
 
     public boolean isAutoVac() {
         return autoVac;
+    }
+
+    public void toggleAutoTaunt() {
+        autoTaunt = !autoTaunt;
+        if (autoTaunt) {
+            startTauntTask();
+            applyTauntToMap();
+        } else {
+            cancelTauntTask();
+            releaseTauntedMobs();   // let mobs lose interest immediately instead of waiting for natural decay
+        }
+    }
+
+    public boolean isAutoTaunt() {
+        return autoTaunt;
+    }
+
+    // Clears the forced aggro on mobs we currently control so they stop pursuing once auto-taunt is off.
+    // The reset flag is echoed to our client on the mob's next move packet (aggroMoveLifeUpdate).
+    private void releaseTauntedMobs() {
+        MapleMap map = getMap();
+        if (map == null) {
+            return;
+        }
+        for (MapObject mo : map.getMonsters()) {
+            Monster mob = (Monster) mo;
+            if (mob.getController() == this) {
+                mob.aggroResetAggro();
+            }
+        }
+    }
+
+    // Claims controllership of every mob on the current map and pins their aggro to this player,
+    // so the controlling client walks them toward us (a "permanent taunt"). Mob pathing itself is
+    // still client-side (see AGENTS.md: mob movement is controller-authoritative).
+    public void applyTauntToMap() {
+        if (!autoTaunt) {
+            return;
+        }
+        MapleMap map = getMap();
+        if (map == null) {
+            return;
+        }
+        for (MapObject mo : map.getMonsters()) {
+            Monster mob = (Monster) mo;
+            if (mob.isAlive()) {
+                if (mob.getController() != this) {
+                    mob.aggroSwitchController(this, true);   // steal control from anyone else and aggro onto us
+                } else {
+                    mob.aggroAutoAggroUpdate(this);          // already ours: just refresh aggro before it decays
+                }
+            }
+        }
+    }
+
+    private void startTauntTask() {
+        if (tauntTask == null) {
+            // Re-apply faster than the aggro-decay interval (MOB_STATUS_AGGRO_INTERVAL, default 5s)
+            // so newly spawned mobs and decayed aggro get re-taunted.
+            tauntTask = TimerManager.getInstance().register(() -> {
+                if (autoTaunt) {
+                    applyTauntToMap();
+                }
+            }, 3000, 3000);
+        }
+    }
+
+    public void cancelTauntTask() {
+        if (tauntTask != null) {
+            tauntTask.cancel(false);
+            tauntTask = null;
+        }
     }
 
     public void setClient(Client c) {
@@ -10108,6 +10182,7 @@ public class Character extends AbstractCharacterObject {
         cancelDiseaseExpireTask();
         cancelSkillCooldownTask();
         cancelExpirationTask();
+        cancelTauntTask();
 
         if (questExpireTask != null) {
             questExpireTask.cancel(true);

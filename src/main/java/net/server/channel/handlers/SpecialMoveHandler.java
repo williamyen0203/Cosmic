@@ -50,6 +50,7 @@ public final class SpecialMoveHandler extends AbstractPacketHandler {
     // Beginner skills repurposed as bindable toggles: casting them flips a state instead of casting.
     private static final int VAC_TOGGLE_SKILL = 1000;      // Three Snails (client's real id; Beginner.THREE_SNAILS is mis-set to 1001)
     private static final int STANCE_TOGGLE_SKILL = 1001;   // Recovery (== Beginner.RECOVERY)
+    private static final int TAUNT_TOGGLE_SKILL = 1002;    // Nimble Feet (== Beginner.NIMBLE_FEET)
 
     @Override
     public final void handlePacket(InPacket p, Client c) {
@@ -83,6 +84,19 @@ public final class SpecialMoveHandler extends AbstractPacketHandler {
                         stance.getEffect(stance.getMaxLevel()).applyTo(chr);
                         chr.message("Stance enabled.");
                     }
+                } finally {
+                    c.releaseClient();
+                }
+            }
+            c.sendPacket(PacketCreator.enableActions());
+            return;
+        }
+
+        if (skillid == TAUNT_TOGGLE_SKILL) {
+            if (c.tryacquireClient()) {
+                try {
+                    chr.toggleAutoTaunt();
+                    chr.message("Auto-taunt " + (chr.isAutoTaunt() ? "enabled" : "disabled") + ".");
                 } finally {
                     c.releaseClient();
                 }
