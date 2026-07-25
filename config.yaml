@@ -458,3 +458,6 @@ server:
     SPAWN_MULTIPLIER: 1                 #Multiplies target mob population on maps. 2 doubles spawn limits, 3 triples them, etc.
     MOB_RESPAWN_TIME_RATE: 1.0          #Multiplies mob respawn speed after death. 2.0 = twice as fast, 0.5 = half speed.
     #RESPAWN_INTERVAL (above) controls how often the server checks for missing mobs, in milliseconds.
+
+    #Drop Rate Configuration
+    NX_COUPON_DROP_RATE: 1.0            #Extra multiplier for NX card (coupon) drop chance. 2.0 = twice as likely, 0.5 = half. Stacks on top of drop_rate. Values <= 0 are treated as 1.0.

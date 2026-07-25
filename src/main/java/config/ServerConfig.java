@@ -303,4 +303,7 @@ public class ServerConfig {
     //Mob Spawn Configuration
     public int SPAWN_MULTIPLIER;
     public double MOB_RESPAWN_TIME_RATE;
+
+    //Drop Rate Configuration
+    public double NX_COUPON_DROP_RATE;
 }

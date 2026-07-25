@@ -33,6 +33,7 @@ import client.status.MonsterStatus;
 import client.status.MonsterStatusEffect;
 import config.YamlConfig;
 import constants.game.GameConstants;
+import constants.id.ItemId;
 import constants.id.MapId;
 import constants.id.MobId;
 import constants.inventory.ItemConstants;
@@ -651,6 +652,11 @@ public class MapleMap {
         }
     }
 
+    private static double nxCouponDropRate() {
+        double rate = YamlConfig.config.server.NX_COUPON_DROP_RATE;
+        return rate > 0 ? rate : 1.0;
+    }
+
     private byte dropItemsFromMonsterOnMap(List<MonsterDropEntry> dropEntry, Point pos, byte index, int chRate,
                                            byte droptype, int mobpos, Character chr, Monster mob, short delay) {
         if (dropEntry.isEmpty()) {
@@ -664,7 +670,8 @@ public class MapleMap {
 
         for (final MonsterDropEntry de : dropEntry) {
             float cardRate = chr.getCardRate(de.itemId);
-            int dropChance = (int) Math.min((float) de.chance * chRate * cardRate, Integer.MAX_VALUE);
+            float nxRate = ItemId.isNxCard(de.itemId) ? (float) nxCouponDropRate() : 1.0f;
+            int dropChance = (int) Math.min((float) de.chance * chRate * cardRate * nxRate, Integer.MAX_VALUE);
 
             if (Randomizer.nextInt(999999) < dropChance) {
                 if (droptype == 3) {
@@ -710,7 +717,10 @@ public class MapleMap {
         ItemInformationProvider ii = ItemInformationProvider.getInstance();
 
         for (final MonsterGlobalDropEntry de : globalEntry) {
-            if (Randomizer.nextInt(999999) < de.chance) {
+            int dropChance = ItemId.isNxCard(de.itemId)
+                    ? (int) Math.min((float) de.chance * nxCouponDropRate(), Integer.MAX_VALUE)
+                    : de.chance;
+            if (Randomizer.nextInt(999999) < dropChance) {
                 if (droptype == 3) {
                     pos.x = mobpos + (d % 2 == 0 ? (40 * (d + 1) / 2) : -(40 * (d / 2)));
                 } else {

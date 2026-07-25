@@ -26,6 +26,8 @@ import client.Client;
 import client.inventory.Equip;
 import client.inventory.InventoryType;
 import client.inventory.Item;
+import config.YamlConfig;
+import constants.id.ItemId;
 import constants.inventory.ItemConstants;
 import scripting.AbstractPlayerInteraction;
 import server.ItemInformationProvider;
@@ -220,6 +222,11 @@ public class ReactorActionManager extends AbstractPlayerInteraction {
         return ReactorScriptManager.getInstance().getDrops(reactor.getId());
     }
 
+    private static double nxCouponDropRate() {
+        double rate = YamlConfig.config.server.NX_COUPON_DROP_RATE;
+        return rate > 0 ? rate : 1.0;
+    }
+
     private List<ReactorDropEntry> generateDropList(List<ReactorDropEntry> drops, int dropRate, boolean meso, int mesoChance, int minItems) {
         List<ReactorDropEntry> items = new ArrayList<>();
         if (meso && Math.random() < (1 / (double) mesoChance)) {
@@ -227,7 +234,11 @@ public class ReactorActionManager extends AbstractPlayerInteraction {
         }
 
         for (ReactorDropEntry mde : drops) {
-            if (Math.random() < (dropRate / (double) mde.chance)) {
+            double dropChance = dropRate / (double) mde.chance;
+            if (ItemId.isNxCard(mde.itemId)) {
+                dropChance *= nxCouponDropRate();
+            }
+            if (Math.random() < dropChance) {
                 items.add(mde);
             }
         }
