@@ -20,6 +20,7 @@
 
 package client.command.commands.gm0;
 
+import client.BuffStat;
 import client.Client;
 import client.Skill;
 import client.SkillFactory;
@@ -28,16 +29,22 @@ import constants.skills.Hero;
 
 public class StanceCommand extends Command {
     {
-        setDescription("Apply the Stance buff to reduce knockback when hit.");
+        setDescription("Toggle the Stance buff to reduce knockback when hit.");
     }
 
     @Override
     public void execute(Client c, String[] params) {
         if (c.tryacquireClient()) {
             try {
-                Skill stance = SkillFactory.getSkill(Hero.STANCE);
-                stance.getEffect(stance.getMaxLevel()).applyTo(c.getPlayer());
-                c.getPlayer().message("Stance applied - knockback reduced for a while. Re-run @stance to refresh.");
+                if (c.getPlayer().getBuffSource(BuffStat.STANCE) != -1) {
+                    // Any active Stance (Hero/Paladin/DarkKnight or a prior @stance) counts as "on".
+                    c.getPlayer().cancelEffectFromBuffStat(BuffStat.STANCE);
+                    c.getPlayer().message("Stance disabled.");
+                } else {
+                    Skill stance = SkillFactory.getSkill(Hero.STANCE);
+                    stance.getEffect(stance.getMaxLevel()).applyTo(c.getPlayer());
+                    c.getPlayer().message("Stance enabled.");
+                }
             } finally {
                 c.releaseClient();
             }

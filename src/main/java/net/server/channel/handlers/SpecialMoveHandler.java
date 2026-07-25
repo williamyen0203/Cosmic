@@ -21,12 +21,12 @@
 */
 package net.server.channel.handlers;
 
-import client.BuffStat;
 import client.Character;
 import client.Client;
 import client.Skill;
 import client.SkillFactory;
 import config.YamlConfig;
+import constants.skills.Beginner;
 import constants.skills.Brawler;
 import constants.skills.Corsair;
 import constants.skills.DarkKnight;
@@ -47,10 +47,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class SpecialMoveHandler extends AbstractPacketHandler {
 
-    // Beginner skills repurposed as bindable toggles: casting them flips a state instead of casting.
-    private static final int VAC_TOGGLE_SKILL = 1000;      // Three Snails (client's real id; Beginner.THREE_SNAILS is mis-set to 1001)
-    private static final int STANCE_TOGGLE_SKILL = 1001;   // Recovery (== Beginner.RECOVERY)
-    private static final int TAUNT_TOGGLE_SKILL = 1002;    // Nimble Feet (== Beginner.NIMBLE_FEET)
+    // Beginner buff skills repurposed as bindable toggles: casting them flips a state instead of casting.
+    // These MUST be pure buffs (no weapon requirement) so the v83 client sends them as SPECIAL_MOVE.
+    // Three Snails (Beginner.THREE_SNAILS = 1000) is an attack skill, so it never reaches this handler -
+    // stance lives on the @stance command instead.
+    private static final int VAC_TOGGLE_SKILL = Beginner.RECOVERY;      // 1001
+    private static final int TAUNT_TOGGLE_SKILL = Beginner.NIMBLE_FEET; // 1002
 
     @Override
     public final void handlePacket(InPacket p, Client c) {
@@ -64,26 +66,6 @@ public final class SpecialMoveHandler extends AbstractPacketHandler {
                 try {
                     chr.toggleAutoVac();
                     chr.message("Auto-vac " + (chr.isAutoVac() ? "enabled" : "disabled") + ".");
-                } finally {
-                    c.releaseClient();
-                }
-            }
-            c.sendPacket(PacketCreator.enableActions());
-            return;
-        }
-
-        if (skillid == STANCE_TOGGLE_SKILL) {
-            if (c.tryacquireClient()) {
-                try {
-                    if (chr.getBuffSource(BuffStat.STANCE) != -1) {
-                        // Any active Stance (Hero/Paladin/DarkKnight or a prior toggle) counts as "on".
-                        chr.cancelEffectFromBuffStat(BuffStat.STANCE);
-                        chr.message("Stance disabled.");
-                    } else {
-                        Skill stance = SkillFactory.getSkill(Hero.STANCE);
-                        stance.getEffect(stance.getMaxLevel()).applyTo(chr);
-                        chr.message("Stance enabled.");
-                    }
                 } finally {
                     c.releaseClient();
                 }
