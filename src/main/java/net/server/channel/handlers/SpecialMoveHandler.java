@@ -21,6 +21,7 @@
 */
 package net.server.channel.handlers;
 
+import client.BuffStat;
 import client.Character;
 import client.Client;
 import client.Skill;
@@ -46,13 +47,50 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public final class SpecialMoveHandler extends AbstractPacketHandler {
 
+    // Beginner skills repurposed as bindable toggles: casting them flips a state instead of casting.
+    private static final int VAC_TOGGLE_SKILL = 1000;      // Three Snails (client's real id; Beginner.THREE_SNAILS is mis-set to 1001)
+    private static final int STANCE_TOGGLE_SKILL = 1001;   // Recovery (== Beginner.RECOVERY)
+
     @Override
     public final void handlePacket(InPacket p, Client c) {
         Character chr = c.getPlayer();
         p.readInt();
         chr.getAutobanManager().setTimestamp(4, Server.getInstance().getCurrentTimestamp(), 28);
         int skillid = p.readInt();
-        
+
+        if (skillid == VAC_TOGGLE_SKILL) {
+            if (c.tryacquireClient()) {
+                try {
+                    chr.toggleAutoVac();
+                    chr.message("Auto-vac " + (chr.isAutoVac() ? "enabled" : "disabled") + ".");
+                } finally {
+                    c.releaseClient();
+                }
+            }
+            c.sendPacket(PacketCreator.enableActions());
+            return;
+        }
+
+        if (skillid == STANCE_TOGGLE_SKILL) {
+            if (c.tryacquireClient()) {
+                try {
+                    if (chr.getBuffSource(BuffStat.STANCE) != -1) {
+                        // Any active Stance (Hero/Paladin/DarkKnight or a prior toggle) counts as "on".
+                        chr.cancelEffectFromBuffStat(BuffStat.STANCE);
+                        chr.message("Stance disabled.");
+                    } else {
+                        Skill stance = SkillFactory.getSkill(Hero.STANCE);
+                        stance.getEffect(stance.getMaxLevel()).applyTo(chr);
+                        chr.message("Stance enabled.");
+                    }
+                } finally {
+                    c.releaseClient();
+                }
+            }
+            c.sendPacket(PacketCreator.enableActions());
+            return;
+        }
+
         /*
         if ((!GameConstants.isPqSkillMap(chr.getMapId()) && GameConstants.isPqSkill(skillid)) || (!chr.isGM() && GameConstants.isGMSkills(skillid)) || (!GameConstants.isInJobTree(skillid, chr.getJob().getId()) && !chr.isGM())) {
         	AutobanFactory.PACKET_EDIT.alert(chr, chr.getName() + " tried to packet edit skills.");
