@@ -75,6 +75,7 @@ import constants.skills.Priest;
 import constants.skills.Ranger;
 import constants.skills.Shadower;
 import constants.skills.Sniper;
+import constants.skills.SuperGM;
 import constants.skills.ThunderBreaker;
 import constants.skills.Warrior;
 import net.packet.Packet;
@@ -971,6 +972,19 @@ public class Character extends AbstractCharacterObject {
         if (tauntTask != null) {
             tauntTask.cancel(false);
             tauntTask = null;
+        }
+    }
+
+    // Applies GM Haste (SuperGM.HASTE = speed +40, jump +20) when USE_HASTE_EVERYONE is on.
+    // GM.HASTE (9101000) is an empty-stats node in v83, so the functional buff is SuperGM.HASTE.
+    // Called on login and after reviving (death cancels all buffs). Pair with USE_BUFF_EVERLASTING
+    // to make it never expire.
+    public void applyHasteEveryone() {
+        if (YamlConfig.config.server.USE_HASTE_EVERYONE) {
+            Skill haste = SkillFactory.getSkill(SuperGM.HASTE);
+            if (haste != null) {
+                haste.getEffect(haste.getMaxLevel()).applyTo(this);
+            }
         }
     }
 
@@ -7659,6 +7673,7 @@ public class Character extends AbstractCharacterObject {
         changeMap(returnMap);
 
         cancelAllBuffs(false);  // thanks Oblivium91 for finding out players still could revive in area and take damage before returning to town
+        applyHasteEveryone();   // death clears all buffs; restore the everyone-Haste buff on revive
 
         if (usedSafetyCharm) {  // thanks kvmba for noticing safety charm not providing 30% HP/MP
             addMPHP((int) Math.ceil(this.getClientMaxHp() * 0.3), (int) Math.ceil(this.getClientMaxMp() * 0.3));

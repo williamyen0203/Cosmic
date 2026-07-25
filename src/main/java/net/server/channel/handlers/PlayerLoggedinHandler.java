@@ -259,6 +259,7 @@ public final class PlayerLoggedinHandler extends AbstractPacketHandler {
 
             player.getMap().addPlayer(player);
             player.visitMap(player.getMap());
+            player.applyHasteEveryone();   // apply after full map entry so the buff broadcast reaches the map
 
             BuddyList bl = player.getBuddylist();
             int[] buddyIds = bl.getBuddyIds();
