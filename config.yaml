@@ -7,12 +7,12 @@ worlds:
     server_message: Welcome to Scania!
     event_message: Scania!
     why_am_i_recommended: Welcome to Scania!
-    channels: 3
-    exp_rate: 10
-    meso_rate: 10
-    drop_rate: 10
-    boss_drop_rate: 10                      #NOTE: Boss drop rate OVERRIDES common drop rate, for bosses-only.
-    quest_rate: 5                           #Multiplier for Exp & Meso gains when completing a quest. Only available when USE_QUEST_RATE is true. Stacks with server Exp & Meso rates.
+    channels: 2
+    exp_rate: 50
+    meso_rate: 50
+    drop_rate: 25
+    boss_drop_rate: 25                      #NOTE: Boss drop rate OVERRIDES common drop rate, for bosses-only.
+    quest_rate: 25                           #Multiplier for Exp & Meso gains when completing a quest. Only available when USE_QUEST_RATE is true. Stacks with server Exp & Meso rates.
     fishing_rate: 10                        #Multiplier for success likelihood on meso thrown during fishing.
     travel_rate: 10                         #Means of transportation rides/departs using 1/N of the default time.
 
@@ -159,15 +159,15 @@ worlds:
 
 server:
     #Database Configuration
-    DB_URL_FORMAT: "jdbc:mysql://%s:3306/cosmic" # If the docker ENV for DB_HOST is anything but "db", this string format should be changed from 3306 to 3307 (or whichever port it was changed to in docker) 
-    DB_HOST: "localhost" 
+    DB_URL_FORMAT: "jdbc:mysql://%s:3306/cosmic" # If the docker ENV for DB_HOST is anything but "db", this string format should be changed from 3306 to 3307 (or whichever port it was changed to in docker)
+    DB_HOST: "localhost"
     DB_USER: "root"
-    DB_PASS: ""
+    DB_PASS: "root"
     INIT_CONNECTION_POOL_TIMEOUT: 90    # Seconds
 
     #Login Configuration
     WORLDS: 1                           #Initial number of worlds on the server.
-    WLDLIST_SIZE: 21                    #Max possible worlds on the server.
+    WLDLIST_SIZE: 1                    #Max possible worlds on the server.
     CHANNEL_SIZE: 20                    #Max possible channels per world (which is 20, based on the channel list on login phase).
     CHANNEL_LOAD: 100                   #Max players per channel (limit actually used to calculate the World server capacity).
     CHANNEL_LOCKS: 20                   #Total number of structure management locks each channel has.
@@ -178,8 +178,8 @@ server:
     COUPON_INTERVAL: 3600000            #60 minutes, 3600000.
     UPDATE_INTERVAL: 777                #Dictates the frequency on which the "centralized server time" is updated.
 
-    ENABLE_PIC: true               #Pick true/false to enable or disable Pic. Delete character requires PIC available.
-    ENABLE_PIN: true               #Pick true/false to enable or disable Pin.
+    ENABLE_PIC: false               #Pick true/false to enable or disable Pic. Delete character requires PIC available.
+    ENABLE_PIN: false               #Pick true/false to enable or disable Pin.
 
     BYPASS_PIC_EXPIRATION: 20           #Enables PIC bypass, which will remain active for that account by that client machine for N minutes. Set 0 to disable.
     BYPASS_PIN_EXPIRATION: 15           #Enables PIN bypass, which will remain active for that account by that client machine for N minutes. Set 0 to disable.
@@ -219,7 +219,7 @@ server:
     USE_MAXRANGE_ECHO_OF_HERO: true
     USE_MTS: false
     USE_CPQ: true                       #Renders the CPQ available or not.
-    USE_AUTOHIDE_GM: true              #When enabled, GMs are automatically hidden when joining. Thanks to Steven Deblois (steven1152).
+    USE_AUTOHIDE_GM: false              #When enabled, GMs are automatically hidden when joining. Thanks to Steven Deblois (steven1152).
     USE_FIXED_RATIO_HPMP_UPDATE: false   #Enables the HeavenMS-builtin HPMP update based on the current pool to max pool ratio.
     USE_FAMILY_SYSTEM: true
     USE_DUEY: true
@@ -254,8 +254,8 @@ server:
     USE_ERASE_UNTRADEABLE_DROP: true    #Forces flagged untradeable items to disappear when dropped.
     USE_ERASE_PET_ON_EXPIRATION: false  #Forces pets to be removed from inventory when expire time comes, rather than converting it to a doll.
     USE_BUFF_MOST_SIGNIFICANT: true     #When applying buffs, the player will stick with the highest stat boost among the listed, rather than overwriting stats.
-    USE_BUFF_EVERLASTING: false         #Every applied buff on players holds expiration time so high it'd be considered permanent. Suggestion thanks to Vcoc.
-    USE_HASTE_EVERYONE: false           #Gives every player GM Haste (speed +40, jump +20) on login and after reviving. Enable USE_BUFF_EVERLASTING too to make it never expire.
+    USE_BUFF_EVERLASTING: true         #Every applied buff on players holds expiration time so high it'd be considered permanent. Suggestion thanks to Vcoc.
+    USE_HASTE_EVERYONE: true           #Gives every player GM Haste (speed +40, jump +20) on login and after reviving. Enable USE_BUFF_EVERLASTING too to make it never expire.
     USE_MULTIPLE_SAME_EQUIP_DROP: true  #Enables multiple drops by mobs of the same equipment, number of possible drops based on the quantities provided at the drop data.
     USE_ENABLE_FULL_RESPAWN: false       #At respawn task, always respawn missing mobs when they're available. Spawn count doesn't depend on how many players are currently there.
     USE_ENABLE_CHAT_LOG: false          #Write in-game chat to log
@@ -288,7 +288,7 @@ server:
     BLOCK_GENERATE_CASH_ITEM: false     #Prevents creation of cash items with the item/drop command.
     USE_WHOLE_SERVER_RANKING: false     #Enables a ranking pool made from every character registered on the server for the "ranks" command, instead of separated by worlds.
 
-    EQUIP_EXP_RATE: 1.0                  #Rate for equipment exp gain, grows linearly. Set 1.0 for default (about 100~200 same-level range mobs killed to pass equip from level 1 to 2).
+    EQUIP_EXP_RATE: 1.5                  #Rate for equipment exp gain, grows linearly. Set 1.0 for default (about 100~200 same-level range mobs killed to pass equip from level 1 to 2).
     PQ_BONUS_EXP_RATE: 0.5               #Rate for the PQ exp reward.
 
     EXP_SPLIT_LEVEL_INTERVAL: 5            #Non-contributing players must be within N level between the mob to receive EXP.
@@ -344,9 +344,9 @@ server:
     CHSCROLL_STAT_RANGE: 5              #Stat upgrade range (-N, N) on chaos scrolls.
 
     #Beginner Skills Configuration
-    USE_ULTRA_NIMBLE_FEET: false     #Massive speed & jump upgrade.
-    USE_ULTRA_RECOVERY: false        #Massive recovery amounts overtime.
-    USE_ULTRA_THREE_SNAILS: false    #Massive damage on shell toss.
+    USE_ULTRA_NIMBLE_FEET: true     #Massive speed & jump upgrade.
+    USE_ULTRA_RECOVERY: true        #Massive recovery amounts overtime.
+    USE_ULTRA_THREE_SNAILS: true    #Massive damage on shell toss.
 
     #Other Skills Configuration
     USE_FULL_ARAN_SKILLSET: false   #Enables starter availability to all Aran job skills. Suggestion thanks to Masterrulax.
@@ -456,9 +456,9 @@ server:
       9001105: Rescue Gaga!  # Grandpa moon bunny
 
     #Mob Spawn Configuration
-    SPAWN_MULTIPLIER: 1                 #Multiplies target mob population on maps. 2 doubles spawn limits, 3 triples them, etc.
-    MOB_RESPAWN_TIME_RATE: 1.0          #Multiplies mob respawn speed after death. 2.0 = twice as fast, 0.5 = half speed.
+    SPAWN_MULTIPLIER: 3                 #Multiplies target mob population on maps. 2 doubles spawn limits, 3 triples them, etc.
+    MOB_RESPAWN_TIME_RATE: 3.0          #Multiplies mob respawn speed after death. 2.0 = twice as fast, 0.5 = half speed.
     #RESPAWN_INTERVAL (above) controls how often the server checks for missing mobs, in milliseconds.
 
     #Drop Rate Configuration
-    NX_COUPON_DROP_RATE: 1.0            #Extra multiplier for NX card (coupon) drop chance. 2.0 = twice as likely, 0.5 = half. Stacks on top of drop_rate. Values <= 0 are treated as 1.0.
+    NX_COUPON_DROP_RATE: 3.0            #Extra multiplier for NX card (coupon) drop chance. 2.0 = twice as likely, 0.5 = half. Stacks on top of drop_rate. Values <= 0 are treated as 1.0.
