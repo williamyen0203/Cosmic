@@ -128,7 +128,12 @@ public final class UseCashItemHandler extends AbstractPacketHandler {
         if (itemType == 504) { // vip teleport rock
             String error1 = "Either the player could not be found or you were trying to teleport to an illegal location.";
             boolean vip = p.readByte() == 1 && itemId / 1000 >= 5041;
-            remove(c, position, itemId);
+            // VIP Teleport Rocks (5041xxx) have unlimited uses - never consume them. The basic
+            // Teleport Rock (5040xxx) is still consumed per use.
+            boolean unlimited = itemId / 1000 >= 5041;
+            if (!unlimited) {
+                remove(c, position, itemId);
+            }
             boolean success = false;
             if (!vip) {
                 int mapId = p.readInt();
@@ -165,7 +170,9 @@ public final class UseCashItemHandler extends AbstractPacketHandler {
             }
 
             if (!success) {
-                InventoryManipulator.addById(c, itemId, (short) 1);
+                if (!unlimited) {   // VIP rock was never removed, so don't refund a duplicate
+                    InventoryManipulator.addById(c, itemId, (short) 1);
+                }
                 c.sendPacket(PacketCreator.enableActions());
             }
         } else if (itemType == 505) { // AP/SP reset
