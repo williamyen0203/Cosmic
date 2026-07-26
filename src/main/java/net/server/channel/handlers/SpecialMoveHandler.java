@@ -79,18 +79,21 @@ public final class SpecialMoveHandler extends AbstractPacketHandler {
             if (c.tryacquireClient()) {
                 try {
                     chr.toggleAutoTaunt();
-                    chr.message("Auto-taunt " + (chr.isAutoTaunt() ? "enabled" : "disabled") + ".");
+                    boolean on = chr.isAutoTaunt();
 
-                    // Same key also toggles the Stance (no-knockback) buff on/off, mirroring @stance.
-                    if (chr.getBuffSource(BuffStat.STANCE) != -1) {
-                        // Any active Stance (Hero/Paladin/DarkKnight or a prior toggle) counts as "on".
-                        chr.cancelEffectFromBuffStat(BuffStat.STANCE);
-                        chr.message("Stance disabled.");
-                    } else {
+                    // Keep the Stance (no-knockback) buff in lockstep with auto-taunt: this one key
+                    // drives BOTH off the same boolean. We force stance to match `on` rather than
+                    // reading the buff's live state, so a stance that expired/was dispelled/wiped on
+                    // death (which never touched autoTaunt) can't leave the two permanently inverted.
+                    boolean stanceOn = chr.getBuffSource(BuffStat.STANCE) != -1;
+                    if (on && !stanceOn) {
                         Skill stance = SkillFactory.getSkill(Hero.STANCE);
                         stance.getEffect(stance.getMaxLevel()).applyTo(chr);
-                        chr.message("Stance enabled.");
+                    } else if (!on && stanceOn) {
+                        chr.cancelEffectFromBuffStat(BuffStat.STANCE);
                     }
+
+                    chr.message("Auto-taunt and Stance " + (on ? "enabled" : "disabled") + ".");
                 } finally {
                     c.releaseClient();
                 }
