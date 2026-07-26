@@ -34,6 +34,11 @@ public class ItemId {
         return itemType == 238;
     }
 
+    // Production/Forging Stimulator crafting items (Gloves..Shield), a contiguous Etc block.
+    public static boolean isProductionStimulator(int itemId) {
+        return itemId >= 4130000 && itemId <= 4130022;
+    }
+
     public static boolean isPyramidBuff(int itemId) {
         return (itemId >= 2022585 && itemId <= 2022588) || (itemId >= 2022616 && itemId <= 2022617);
     }

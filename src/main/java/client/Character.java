@@ -2079,6 +2079,11 @@ public class Character extends AbstractCharacterObject {
     public final void pickupAllItemsInMap() {
         List<MapObject> items = getMap().getMapObjectsInRange(getPosition(), Double.POSITIVE_INFINITY, Arrays.asList(MapObjectType.ITEM));
         for (MapObject item : items) {
+            // Don't let the item-vac hoover up Production/Forging Stimulators; they can still be
+            // picked up manually (vac off, click the drop).
+            if (item instanceof MapItem mapitem && ItemId.isProductionStimulator(mapitem.getItemId())) {
+                continue;
+            }
             pickupItem(item);
         }
     }
