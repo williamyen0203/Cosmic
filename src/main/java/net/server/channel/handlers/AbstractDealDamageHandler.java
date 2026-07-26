@@ -553,9 +553,26 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
 
             // Full Map Attack: after the client's real targets are handled, extend this swing to
             // other monsters anywhere on the map - but only up to the skill's mob-count, so a
-            // single-target attack (mobCount 1) still hits exactly one monster. We reuse the seed
-            // damage/delay from the strongest real hit, so nothing fires unless we actually hit a mob.
-            if (player.isAutoFullMapAttack() && fullMapSeedDamage > 0) {
+            // single-target attack (mobCount 1) still hits exactly one monster.
+            if (player.isAutoFullMapAttack()) {
+                int seedDamage = fullMapSeedDamage;
+                short seedDelay = fullMapSeedDelay;
+
+                // If we hit nothing real to seed from (swung/cast into empty space - the client still
+                // sends the packet for skills, so far mobs would otherwise be skipped), approximate a
+                // hit from the player's own stats. Note a plain melee swing that connects with no mob
+                // usually sends no packet at all, so this only kicks in for attacks the client reports.
+                if (seedDamage <= 0) {
+                    int base = attack.magic
+                            ? player.calculateMaxBaseMagicDamage(player.getTotalMagic())
+                            : player.calculateMaxBaseDamage(player.getTotalWatk());
+                    if (attackEffect != null && attackEffect.getDamage() > 0) {
+                        base = (int) ((long) base * attackEffect.getDamage() / 100);
+                    }
+                    seedDamage = Math.max(1, base * Math.max(1, attackCount));
+                    seedDelay = attack.attackDelay != null ? attack.attackDelay : 0;
+                }
+
                 int mobCap = (attackEffect != null) ? attackEffect.getMobCount() : 1;
                 int slotsToFill = mobCap - attack.targets.size();
                 if (slotsToFill > 0) {
@@ -567,8 +584,8 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
                         if (attack.targets.containsKey(extra.getObjectId()) || !extra.isAlive()) {
                             continue;
                         }
-                        map.broadcastMessage(PacketCreator.damageMonster(extra.getObjectId(), fullMapSeedDamage), extra.getPosition());
-                        map.damageMonster(player, extra, fullMapSeedDamage, fullMapSeedDelay);
+                        map.broadcastMessage(PacketCreator.damageMonster(extra.getObjectId(), seedDamage), extra.getPosition());
+                        map.damageMonster(player, extra, seedDamage, seedDelay);
                         slotsToFill--;
                     }
                 }
