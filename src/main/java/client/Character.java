@@ -2077,15 +2077,35 @@ public class Character extends AbstractCharacterObject {
     }
 
     public final void pickupAllItemsInMap() {
+        pickupAllItemsInMap(null);
+    }
+
+    /**
+     * Item-vac: pick up every drop on the map at once. Equipment and Production/Forging
+     * Stimulators are deliberately left on the ground so the vac doesn't hoover them up; they
+     * can still be picked up manually (vac off, click the drop). The one exception is the drop
+     * the player is actually standing on and looting (the one the pickup packet targeted) —
+     * that item is always collected, regardless of the vac exclusion rules.
+     */
+    public final void pickupAllItemsInMap(MapObject standingOn) {
+        int standingOnOid = (standingOn != null) ? standingOn.getObjectId() : -1;
         List<MapObject> items = getMap().getMapObjectsInRange(getPosition(), Double.POSITIVE_INFINITY, Arrays.asList(MapObjectType.ITEM));
         for (MapObject item : items) {
-            // Don't let the item-vac hoover up Production/Forging Stimulators; they can still be
-            // picked up manually (vac off, click the drop).
-            if (item instanceof MapItem mapitem && ItemId.isProductionStimulator(mapitem.getItemId())) {
+            if (item.getObjectId() != standingOnOid && item instanceof MapItem mapitem && isVacExcluded(mapitem)) {
                 continue;
             }
             pickupItem(item);
         }
+    }
+
+    // Drops the item-vac should skip. Meso drops report their amount via getItemId(), so guard
+    // on getMeso() first — otherwise small meso piles look like low-id equipment.
+    private static boolean isVacExcluded(MapItem mapitem) {
+        if (mapitem.getMeso() > 0) {
+            return false;
+        }
+        int itemId = mapitem.getItemId();
+        return ItemId.isProductionStimulator(itemId) || ItemConstants.isEquipment(itemId);
     }
 
     public final void pickupItem(MapObject ob) {
