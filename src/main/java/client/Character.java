@@ -332,6 +332,7 @@ public class Character extends AbstractCharacterObject {
     private boolean allowExpGain = true;
     private boolean autoVac = false;
     private boolean autoTaunt = false;
+    private boolean autoFullMapAttack = false;
     private byte pendantExp = 0, lastmobcount = 0, doorSlot = -1;
     private final List<Integer> trockmaps = new ArrayList<>();
     private final List<Integer> viptrockmaps = new ArrayList<>();
@@ -901,6 +902,14 @@ public class Character extends AbstractCharacterObject {
 
     public boolean isAutoVac() {
         return autoVac;
+    }
+
+    public void toggleAutoFullMapAttack() {
+        autoFullMapAttack = !autoFullMapAttack;
+    }
+
+    public boolean isAutoFullMapAttack() {
+        return autoFullMapAttack;
     }
 
     public void toggleAutoTaunt() {

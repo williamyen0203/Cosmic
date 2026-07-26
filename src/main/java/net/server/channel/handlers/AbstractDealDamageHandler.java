@@ -215,6 +215,12 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
 
             int totDamage = 0;
 
+            // Full Map Attack: reuse the biggest per-monster total the client actually rolled this
+            // swing as the "seed" damage for far-away monsters (the client only sends damage for the
+            // mobs it targeted). We only fill if at least one real target was hit (seed > 0).
+            int fullMapSeedDamage = 0;
+            short fullMapSeedDelay = 0;
+
             if (attack.skill == ChiefBandit.MESO_EXPLOSION) {
                 removeExplodedMesos(map, attack);
             }
@@ -520,6 +526,10 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
 
                         map.damageMonster(player, monster, totDamageToOneMonster, target.getValue().delay());
                     }
+                    if (totDamageToOneMonster > fullMapSeedDamage) {
+                        fullMapSeedDamage = totDamageToOneMonster;
+                        fullMapSeedDelay = target.getValue().delay();
+                    }
                     if (monster.isBuffed(MonsterStatus.WEAPON_REFLECT) && !attack.magic) {
                         for (MobSkillId msId : monster.getSkills()) {
                             if (msId.type() == MobSkillType.PHYSICAL_AND_MAGIC_COUNTER) {
@@ -537,6 +547,29 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
                                 map.broadcastMessage(player, PacketCreator.damagePlayer(0, monster.getId(), player.getId(), toUse.getY(), 0, 0, false, 0, true, monster.getObjectId(), 0, 0), true);
                             }
                         }
+                    }
+                }
+            }
+
+            // Full Map Attack: after the client's real targets are handled, extend this swing to
+            // other monsters anywhere on the map - but only up to the skill's mob-count, so a
+            // single-target attack (mobCount 1) still hits exactly one monster. We reuse the seed
+            // damage/delay from the strongest real hit, so nothing fires unless we actually hit a mob.
+            if (player.isAutoFullMapAttack() && fullMapSeedDamage > 0) {
+                int mobCap = (attackEffect != null) ? attackEffect.getMobCount() : 1;
+                int slotsToFill = mobCap - attack.targets.size();
+                if (slotsToFill > 0) {
+                    for (MapObject mo : map.getMonsters()) {
+                        if (slotsToFill <= 0) {
+                            break;
+                        }
+                        Monster extra = (Monster) mo;
+                        if (attack.targets.containsKey(extra.getObjectId()) || !extra.isAlive()) {
+                            continue;
+                        }
+                        map.broadcastMessage(PacketCreator.damageMonster(extra.getObjectId(), fullMapSeedDamage), extra.getPosition());
+                        map.damageMonster(player, extra, fullMapSeedDamage, fullMapSeedDelay);
+                        slotsToFill--;
                     }
                 }
             }

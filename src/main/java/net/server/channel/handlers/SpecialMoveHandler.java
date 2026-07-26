@@ -66,7 +66,16 @@ public final class SpecialMoveHandler extends AbstractPacketHandler {
             if (c.tryacquireClient()) {
                 try {
                     chr.toggleAutoVac();
-                    chr.message("Auto-vac " + (chr.isAutoVac() ? "enabled" : "disabled") + ".");
+                    boolean on = chr.isAutoVac();
+
+                    // Full Map Attack rides the same key as auto-vac: one toggle drives BOTH.
+                    // Force it to match `on` idempotently rather than flipping it independently, so the
+                    // two can't drift out of sync (mirrors how auto-taunt keeps Stance in lockstep).
+                    if (chr.isAutoFullMapAttack() != on) {
+                        chr.toggleAutoFullMapAttack();
+                    }
+
+                    chr.message("Auto-vac and Full Map Attack " + (on ? "enabled" : "disabled") + ".");
                 } finally {
                     c.releaseClient();
                 }
