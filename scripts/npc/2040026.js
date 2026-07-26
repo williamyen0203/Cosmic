@@ -28,12 +28,8 @@ var status = 0;
 var map;
 
 function start() {
-    if (cm.haveItem(4001020)) {
-        cm.sendSimple("You can use #bEos Rock Scroll#k to activate #bThird Eos Rock#k. Which of these rocks would you like to teleport to?#b\r\n#L0#Second Eos Rock (71st Floor)#l\r\n#L1#Fourth Eos Rock (1st Floor)#l");
-    } else {
-        cm.sendOk("There's a rock that will enable you to teleport to #bSecond Eos Rock or Fourth Eos Rock#k, but it cannot be activated without the scroll.");
-        cm.dispose();
-    }
+    // Magic Spot is free: no scroll required to activate, none consumed.
+    cm.sendSimple("Which of these rocks would you like to teleport to?#b\r\n#L0#Second Eos Rock (71st Floor)#l\r\n#L1#Fourth Eos Rock (1st Floor)#l");
 }
 
 function action(mode, type, selection) {
@@ -50,7 +46,6 @@ function action(mode, type, selection) {
                 map = 221020000;
             }
         } else if (status == 2) {
-            cm.gainItem(4001020, -1);
             cm.warp(map, map % 1000 == 900 ? 3 : 4);
             cm.dispose();
         }
