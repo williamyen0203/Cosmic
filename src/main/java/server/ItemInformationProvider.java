@@ -379,6 +379,13 @@ public class ItemInformationProvider {
             } else {
                 ret = (short) DataTool.getInt(smEntry);
             }
+
+            // Raise the per-slot stack limit for normally-stackable items (leaves equips and
+            // wz-declared unique items at 1, and rechargeables to their mastery-based sizing).
+            int stackLimit = YamlConfig.config.server.ITEM_STACK_LIMIT;
+            if (stackLimit > 1 && ret > 1 && ret < stackLimit && !ItemConstants.isRechargeable(itemId)) {
+                ret = (short) stackLimit;
+            }
         }
 
         slotMaxCache.put(itemId, ret);

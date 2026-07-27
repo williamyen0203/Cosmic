@@ -312,4 +312,7 @@ public class ServerConfig {
     //Auto-Loot Configuration
     public boolean USE_AUTOLOOT_MESO;
     public boolean USE_AUTOLOOT_NX;
+
+    //Item Configuration
+    public int ITEM_STACK_LIMIT;
 }

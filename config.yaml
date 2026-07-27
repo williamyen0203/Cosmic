@@ -466,3 +466,6 @@ server:
   #Auto-Loot Configuration
   USE_AUTOLOOT_MESO: true #When true, mesos dropped by mobs visibly drop and are then auto-picked-up for the owner shortly after.
   USE_AUTOLOOT_NX: true #When true, NX cards dropped by mobs visibly drop and are then auto-picked-up (credited as NX) for the owner shortly after.
+
+  #Item Configuration
+  ITEM_STACK_LIMIT: 9999 #Minimum per-slot stack size for normally-stackable items (e.g. potions/etc that cap at 100). Raises any stackable item whose limit is below this value; equips, unique items, and rechargeables (stars/bullets) are unaffected. Set to 0 or 1 to disable.
