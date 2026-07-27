@@ -678,6 +678,9 @@ public class Client extends ChannelInboundHandlerAdapter {
                     if (getLoginState() > LOGIN_NOTLOGGEDIN) { // already loggedin
                         loggedIn = false;
                         loginok = 7;
+                    } else if (YamlConfig.config.server.SKIP_PASSWORD_CHECK) {
+                        // DEV/PRIVATE ONLY: accept any password for an existing account.
+                        loginok = (tos == 0) ? 23 : 0;
                     } else if (passhash.charAt(0) == '$' && passhash.charAt(1) == '2' && BCrypt.checkpw(pwd, passhash)) {
                         loginok = (tos == 0) ? 23 : 0;
                     } else if (pwd.equals(passhash) || checkHash(passhash, "SHA-1", pwd) || checkHash(passhash, "SHA-512", pwd)) {

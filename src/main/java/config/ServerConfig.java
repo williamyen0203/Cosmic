@@ -33,6 +33,7 @@ public class ServerConfig {
 
     public boolean AUTOMATIC_REGISTER;
     public boolean BCRYPT_MIGRATION;
+    public boolean SKIP_PASSWORD_CHECK;
     public boolean COLLECTIVE_CHARSLOT;
     public boolean DETERRED_MULTICLIENT;
 
