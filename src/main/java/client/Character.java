@@ -333,6 +333,7 @@ public class Character extends AbstractCharacterObject {
     private boolean autoVac = false;
     private boolean autoTaunt = false;
     private boolean autoFullMapAttack = false;
+    private final FullMapAttackDamageMemory fullMapAttackDamageMemory = new FullMapAttackDamageMemory();
     private byte pendantExp = 0, lastmobcount = 0, doorSlot = -1;
     private final List<Integer> trockmaps = new ArrayList<>();
     private final List<Integer> viptrockmaps = new ArrayList<>();
@@ -910,6 +911,10 @@ public class Character extends AbstractCharacterObject {
 
     public boolean isAutoFullMapAttack() {
         return autoFullMapAttack;
+    }
+
+    public FullMapAttackDamageMemory getFullMapAttackDamageMemory() {
+        return fullMapAttackDamageMemory;
     }
 
     public void toggleAutoTaunt() {

@@ -23,6 +23,7 @@ package net.server.channel.handlers;
 
 import client.BuffStat;
 import client.Character;
+import client.FullMapAttackDamageMemory;
 import client.Job;
 import client.Skill;
 import client.SkillFactory;
@@ -107,6 +108,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -215,10 +217,15 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
 
             int totDamage = 0;
 
-            // Full Map Attack: reuse the biggest per-monster total the client actually rolled this
-            // swing as the "seed" damage for far-away monsters (the client only sends damage for the
-            // mobs it targeted). We only fill if at least one real target was hit (seed > 0).
-            int fullMapSeedDamage = 0;
+            // Full Map Attack: the client only computes damage for the mobs it actually targeted,
+            // and those damage lines already bake in the skill multiplier, mastery variance, element
+            // and crits at their real frequency. To make far-away mobs hit like real hits, we pool
+            // every real damage line this swing and re-sample from it per far mob (see below),
+            // rather than copying a single flat number. fullMapDamageLines collects those lines;
+            // fullMapLinesPerHit is how many lines a real mob received (so far mobs get the same
+            // count); fullMapSeedDelay reuses a real hit's animation delay.
+            List<Integer> fullMapDamageLines = new ArrayList<>();
+            int fullMapLinesPerHit = 0;
             short fullMapSeedDelay = 0;
 
             if (attack.skill == ChiefBandit.MESO_EXPLOSION) {
@@ -526,8 +533,21 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
 
                         map.damageMonster(player, monster, totDamageToOneMonster, target.getValue().delay());
                     }
-                    if (totDamageToOneMonster > fullMapSeedDamage) {
-                        fullMapSeedDamage = totDamageToOneMonster;
+                    // Full Map Attack source-of-truth: remember the real total this mob took, keyed
+                    // by (skill, mob species), so a far mob of the same type can later replay a
+                    // number the player actually dealt to it (its defense/element already baked in).
+                    // Recorded always - not just while FMA is on - so data is ready the moment it is
+                    // toggled. Also stash this swing's raw lines as an immediate fallback for far
+                    // mobs we have no per-type history for yet.
+                    if (totDamageToOneMonster > 0) {
+                        player.getFullMapAttackDamageMemory().record(attack.skill, monster.getId(), totDamageToOneMonster);
+                        for (Integer eachd : onedList) {
+                            int line = eachd < 0 ? eachd + Integer.MAX_VALUE : eachd;
+                            if (line > 0) {
+                                fullMapDamageLines.add(line);
+                            }
+                        }
+                        fullMapLinesPerHit = Math.max(fullMapLinesPerHit, onedList.size());
                         fullMapSeedDelay = target.getValue().delay();
                     }
                     if (monster.isBuffed(MonsterStatus.WEAPON_REFLECT) && !attack.magic) {
@@ -555,27 +575,33 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
             // other monsters anywhere on the map - but only up to the skill's mob-count, so a
             // single-target attack (mobCount 1) still hits exactly one monster.
             if (player.isAutoFullMapAttack()) {
-                int seedDamage = fullMapSeedDamage;
                 short seedDelay = fullMapSeedDelay;
 
-                // If we hit nothing real to seed from (swung/cast into empty space - the client still
-                // sends the packet for skills, so far mobs would otherwise be skipped), approximate a
-                // hit from the player's own stats. Note a plain melee swing that connects with no mob
-                // usually sends no packet at all, so this only kicks in for attacks the client reports.
-                if (seedDamage <= 0) {
+                // How many damage lines to roll per far mob - match what a real mob took this swing.
+                int linesPerHit = fullMapLinesPerHit > 0 ? fullMapLinesPerHit : Math.max(1, attackCount);
+
+                // Fallback pool, used only when we have no per-mob-type history AND hit nothing real
+                // this swing (e.g. cast into empty space). Approximates ONE line from the player's
+                // own stats; each far mob gets linesPerHit copies so totals stay in range. A plain
+                // melee swing that connects with no mob usually sends no packet at all, so this only
+                // kicks in for reported attacks.
+                List<Integer> thisSwingPool = fullMapDamageLines;
+                boolean haveStatFallbackDelay = false;
+                if (thisSwingPool.isEmpty()) {
                     int base = attack.magic
                             ? player.calculateMaxBaseMagicDamage(player.getTotalMagic())
                             : player.calculateMaxBaseDamage(player.getTotalWatk());
                     if (attackEffect != null && attackEffect.getDamage() > 0) {
                         base = (int) ((long) base * attackEffect.getDamage() / 100);
                     }
-                    seedDamage = Math.max(1, base * Math.max(1, attackCount));
-                    seedDelay = attack.attackDelay != null ? attack.attackDelay : 0;
+                    thisSwingPool = List.of(Math.max(1, base));
+                    haveStatFallbackDelay = true;
                 }
 
                 int mobCap = (attackEffect != null) ? attackEffect.getMobCount() : 1;
                 int slotsToFill = mobCap - attack.targets.size();
                 if (slotsToFill > 0) {
+                    FullMapAttackDamageMemory dmgMemory = player.getFullMapAttackDamageMemory();
                     for (MapObject mo : map.getMonsters()) {
                         if (slotsToFill <= 0) {
                             break;
@@ -584,8 +610,29 @@ public abstract class AbstractDealDamageHandler extends AbstractPacketHandler {
                         if (attack.targets.containsKey(extra.getObjectId()) || !extra.isAlive()) {
                             continue;
                         }
-                        map.broadcastMessage(PacketCreator.damageMonster(extra.getObjectId(), seedDamage), extra.getPosition());
-                        map.damageMonster(player, extra, seedDamage, seedDelay);
+
+                        // Source of truth, best first:
+                        // 1) a real total this player recently dealt to THIS mob type with THIS skill
+                        //    (its defense/element already reflected) - replay it directly;
+                        // 2) otherwise re-sample this swing's real lines (or the stat fallback),
+                        //    picking linesPerHit lines and summing - crits/variance at their true rate.
+                        int extraDamage;
+                        OptionalInt remembered = dmgMemory.sample(attack.skill, extra.getId());
+                        if (remembered.isPresent()) {
+                            extraDamage = remembered.getAsInt();
+                        } else {
+                            long dmg = 0;
+                            for (int i = 0; i < linesPerHit; i++) {
+                                dmg += thisSwingPool.get(Randomizer.nextInt(thisSwingPool.size()));
+                            }
+                            extraDamage = (int) Math.min(Integer.MAX_VALUE, Math.max(1, dmg));
+                        }
+
+                        short delay = haveStatFallbackDelay && !remembered.isPresent()
+                                ? (attack.attackDelay != null ? attack.attackDelay : 0)
+                                : seedDelay;
+                        map.broadcastMessage(PacketCreator.damageMonster(extra.getObjectId(), extraDamage), extra.getPosition());
+                        map.damageMonster(player, extra, extraDamage, delay);
                         slotsToFill--;
                     }
                 }
