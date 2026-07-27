@@ -84,8 +84,41 @@ see `server/StatEffect.java`).
 - Apply a skill's buff to any player (regardless of whether they learned it) with
   `SkillFactory.getSkill(id).getEffect(maxLevel).applyTo(player)` (see `BuffMeCommand`).
 
+## Custom auto-play toggles (this fork)
+
+This fork repurposes two Beginner skills as in-game hotkey toggles, handled in
+`net/server/channel/handlers/SpecialMoveHandler.java` (each branch is gated by
+`if (c.tryacquireClient()) { try { ... } finally { c.releaseClient(); } }` and ends with
+`c.sendPacket(PacketCreator.enableActions()); return;`):
+
+- **Recovery (`1001`) → auto-vac + Full Map Attack, in lockstep.** One toggle drives both:
+  it flips `autoVac`, then forces `autoFullMapAttack` to *match* idempotently (never toggles
+  it independently, so they can't drift). Auto-vac's **only** entry point is
+  `Character.pickupAllItemsInMap()`, called from `ItemPickupHandler` when `isAutoVac()`;
+  it skips equipment and Production Stimulators except the drop you're standing on. The
+  `@forcevac` GM command is a **separate** path that credits inline — it does *not* call
+  `pickupAllItemsInMap()`.
+- **Nimble Feet (`1002`) → auto-taunt + Stance (no-knockback), in lockstep.** Flips
+  `autoTaunt`, then forces the `BuffStat.STANCE` buff (Hero Stance `1121002` at max level via
+  `applyTo`) to match — re-reading the buff's live state each time so an expired/dispelled/
+  death-wiped stance can't leave the two permanently inverted.
+
+**Lockstep principle:** when one key drives two states, force the second to match the first's
+boolean idempotently; never track it independently or you get drift.
+
 ## Domain gotchas
 
+- **Combat is client-authoritative — the server trusts, it doesn't compute.** For an
+  attack, the *client* picks which monsters were hit, rolls the per-hit damage (crits,
+  mastery variance, elemental mods included), and sends it all in the attack packet;
+  `AbstractDealDamageHandler.applyAttack` (line ~157) just applies those numbers. The
+  server's distance check (~line 266) only fires an autoban **alert** — it never blocks
+  or clamps. Consequences: attack **range**, **target/mob count**, and **crit** all live
+  in the client (`Skill.wz` + client logic), not the server. A server-side feature can
+  therefore only *fabricate or adjust* what the client already sent — it cannot extend an
+  attack's range or re-derive a client damage roll. (Full Map Attack works by fabricating
+  hits on extra map monsters and reusing the client's own damage numbers as the source of
+  truth — see `Character.getFullMapAttackDamageMemory()` — rather than widening range.)
 - **Player knockback-on-damage is client-side.** The server's `TakeDamageHandler`
   trusts client-reported damage/direction, deducts HP, and rebroadcasts `damagePlayer`
   to *other* clients (the victim is excluded). No packet field controls victim knockback.
