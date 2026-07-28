@@ -1,6 +1,8 @@
 package config;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ServerConfig {
@@ -315,4 +317,12 @@ public class ServerConfig {
 
     //Item Configuration
     public int ITEM_STACK_LIMIT;
+
+    //Level-based EXP Rate Configuration (this fork)
+    //When USE_LEVEL_EXP_RATE is true, mob EXP uses the LEVEL_EXP_TIERS table (by player level)
+    //as the effective EXP rate instead of the world exp_rate. Quest EXP = tier * QUEST_EXP_MULTIPLIER.
+    //Meso is unaffected (still world meso_rate). EXP/meso coupons still stack on top.
+    public boolean USE_LEVEL_EXP_RATE;
+    public int QUEST_EXP_MULTIPLIER;
+    public List<LevelExpTier> LEVEL_EXP_TIERS = new ArrayList<>();
 }

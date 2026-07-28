@@ -362,7 +362,7 @@ server:
   USE_PERFECT_PITCH: true #For lvl 30 or above, each lvlup grants player 1 perfect pitch.
 
   #Quest Configuration
-  USE_QUEST_RATE: false #Exp/Meso gained by quests uses fixed server exp/meso rate times quest rate as multiplier, instead of player rates.
+  USE_QUEST_RATE: true #Exp/Meso gained by quests uses fixed server exp/meso rate times quest rate as multiplier, instead of player rates. Must be true for USE_LEVEL_EXP_RATE quest scaling to apply.
 
   #Quest Points Configuration
   QUEST_POINT_REPEATABLE_INTERVAL: 25 #Minimum interval between repeatable quest completions for quest points to be awarded.
@@ -469,3 +469,22 @@ server:
 
   #Item Configuration
   ITEM_STACK_LIMIT: 9999 #Minimum per-slot stack size for normally-stackable items (e.g. potions/etc that cap at 100). Raises any stackable item whose limit is below this value; equips, unique items, and rechargeables (stars/bullets) are unaffected. Set to 0 or 1 to disable.
+
+  #Level-based EXP Rate Configuration
+  USE_LEVEL_EXP_RATE: true #When true, mob EXP uses the LEVEL_EXP_TIERS table below (by player level) as the effective EXP rate, replacing the world exp_rate. Meso is unaffected (still world meso_rate). EXP coupons still stack on top.
+  QUEST_EXP_MULTIPLIER: 2 #Quest EXP = this * the player's level-tier mob EXP rate. Requires USE_QUEST_RATE: true. Quest meso mirrors the flat meso_rate.
+  LEVEL_EXP_TIERS: #maxLevel is INCLUSIVE; a player uses the tightest tier whose maxLevel >= their level (levels above the last tier use the last tier).
+    - maxLevel: 30
+      expRate: 5
+    - maxLevel: 70
+      expRate: 15
+    - maxLevel: 100
+      expRate: 35
+    - maxLevel: 120
+      expRate: 75
+    - maxLevel: 150
+      expRate: 120
+    - maxLevel: 180
+      expRate: 200
+    - maxLevel: 200
+      expRate: 300

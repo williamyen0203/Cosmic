@@ -2,6 +2,7 @@ package constants.game;
 
 import client.Disease;
 import client.Job;
+import config.LevelExpTier;
 import config.YamlConfig;
 import constants.id.MapId;
 import constants.skills.Aran;
@@ -50,6 +51,33 @@ public class GameConstants {
 
     public static int getPlayerBonusExpRate(int slot) {
         return (EXP_RATE_GAIN[slot]);
+    }
+
+    /**
+     * This fork: the level-based mob EXP multiplier from the config LEVEL_EXP_TIERS table.
+     * {@code maxLevel} is inclusive; picks the tier with the smallest {@code maxLevel} that still
+     * covers {@code level}. A level past every tier falls back to the highest tier. Order-independent.
+     * Returns 1 if the table is empty/misconfigured.
+     */
+    public static int getLevelExpRate(int level) {
+        List<LevelExpTier> tiers = YamlConfig.config.server.LEVEL_EXP_TIERS;
+        if (tiers == null || tiers.isEmpty()) {
+            return 1;
+        }
+
+        LevelExpTier covering = null;   // tightest tier whose maxLevel >= level
+        LevelExpTier highest = null;    // fallback for levels above every tier
+        for (LevelExpTier tier : tiers) {
+            if (highest == null || tier.maxLevel > highest.maxLevel) {
+                highest = tier;
+            }
+            if (level <= tier.maxLevel && (covering == null || tier.maxLevel < covering.maxLevel)) {
+                covering = tier;
+            }
+        }
+
+        LevelExpTier chosen = covering != null ? covering : highest;
+        return Math.max(1, chosen.expRate);
     }
 
     // "goto" command for players

@@ -5082,6 +5082,11 @@ public class Character extends AbstractCharacterObject {
             return 1;
         }
 
+        if (YamlConfig.config.server.USE_LEVEL_EXP_RATE) {
+            // This fork: level-tiered mob EXP replaces the world exp rate; coupons still stack.
+            return GameConstants.getLevelExpRate(level) * expCoupon;
+        }
+
         return expRate;
     }
 
@@ -5127,11 +5132,21 @@ public class Character extends AbstractCharacterObject {
             return 1;
         }
 
+        if (YamlConfig.config.server.USE_LEVEL_EXP_RATE) {
+            // This fork: quest EXP is a fixed multiple of the level-tiered mob EXP; coupons still stack.
+            return YamlConfig.config.server.QUEST_EXP_MULTIPLIER * GameConstants.getLevelExpRate(level) * expCoupon;
+        }
+
         World w = getWorldServer();
         return w.getExpRate() * w.getQuestRate();
     }
 
     public int getQuestMesoRate() {
+        if (YamlConfig.config.server.USE_LEVEL_EXP_RATE) {
+            // This fork: quest meso mirrors the flat meso rate (no quest-rate multiplier).
+            return getMesoRate();
+        }
+
         World w = getWorldServer();
         return w.getMesoRate() * w.getQuestRate();
     }
